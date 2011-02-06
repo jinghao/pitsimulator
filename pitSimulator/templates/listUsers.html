@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}List of Users{% endblock %}
+{% block content %}
+  {% if users %}
+    {{users|length}} user{{users|pluralize}} in the database
+    <table>
+      <tr><th>User name</th><th>Email</th><th>Team</th></tr>
+    {% for user in users %}
+      <tr><td>{{user.name}} ({{user.id}})</td><td>{{user.email}}</td><td><a href="/users/?team={{user.team.id}}">{{user.team.name}}</a></td></tr>
+    {% endfor %}
+    </table>
+  {% else %}
+    There are no users.
+  {% endif %}
+  <a href="register">Register an account.</a>
+{% endblock %}

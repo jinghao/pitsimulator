@@ -1,0 +1,20 @@
+{% extends "forms.html" %}
+{% block title %}Game Manager{% endblock %}
+{% block content %}
+  <div>{{status}}</div>
+  {{block.super}}
+  {% if teams %}
+    {{teams|length}} team{{teams|pluralize}} in the database
+    <table>
+      <tr><th>Team name</th><th>Number of shares</th><th>Cash</th></tr>
+    {% for team in teams %}
+      <tr><td>{{team.name}} ({{team.id}})</td><td>{{team.shares}}</td><td>{{team.cash}}</td></tr>
+    {% endfor %}
+    </table>
+  {% else %}
+    There are no teams.
+  {% endif %}
+  <form action="" method="post">
+    <input type="submit" name="reset" value="Reset game">
+  </form>
+{% endblock %}

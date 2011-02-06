@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}List of Teams{% endblock %}
+{% block content %}
+  {% if teams %}
+    {{teams|length}} team{{teams|pluralize}} in the database
+    <table>
+      <tr><th>Team name</th><th>Bid</th><th>Ask</th></tr>
+    {% for team in teams %}
+      <tr><td>{{team.name}} ({{team.id}})</td><td>{{team.bid}}</td><td>{{team.ask}}</td></tr>
+    {% endfor %}
+    </table>
+  {% else %}
+    There are no teams.
+  {% endif %}
+  <a href="/teams/register/">Register your team.</a>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Game{% endblock %}
+{% block head %}
+<script type="text/javascript">
+function $(element)
+{
+  if (document.getElementById) return document.getElementById(element);
+  else if (document.all) return document.all[element];
+  else if (document.layers) return document.layers[element];
+  return element;
+}
+
+
+function ajax_handler()
+{
+  try
+  {
+    return new XMLHttpRequest();
+  }
+  catch(e)
+  {
+    try
+    {
+      return new ActiveXObject('Microsoft.XMLHTTP');
+    }
+    catch(e)
+    {
+      return false;
+    }
+  }
+}
+
+function game_init()
+{
+  setInterval(function() { get_xmlhttp(); }, 2000);
+}
+
+function ajax_ready(ajaxObj)
+{
+  return ajaxObj.readyState == 4;
+}
+
+function send_request(ajaxObj, callBack, sendQuery)
+{
+  if(ajaxObj != null)
+  {
+    ajaxObj.abort();
+
+    if(ajaxObj.readyState == 0 || ajaxObj.readyState == 4)
+    {
+      if(gameObj.DEBUG)
+          alert("POSTing " + sendQuery + " to " + gameObj.url);
+      ajaxObj.open('POST', gameObj.url, true);
+      ajaxObj.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');
+      ajaxObj.onreadystatechange = function() { if(ajax_ready(ajaxObj)) callBack(); };
+      ajaxObj.send("random=" + Math.random() + "&" + sendQuery);
+    }
+    else
+    {
+      setTimeout(function() { send_request(ajaxObj, callBack, sendQuery); }, 500);
+    }
+  }
+}
+
+function send_xmlhttp(action, extras)
+{
+  send_request(gameObj.ajaxObj, handle_send, "action=" + action + "&" + extras);
+}
+
+function handle_send()
+{
+  if(gameObj.ajaxObj.responseText != "OK")
+    alert(gameObj.ajaxObj.responseText);
+  else
+    alert("Action successful");
+}
+
+function get_xmlhttp()
+{
+  send_request(gameObj.watcherObj, handle_get, "ajax=get");
+}
+
+function handle_get()
+{ 
+  responseText = gameObj.watcherObj.responseText;
+  if (responseText != "") {
+    response = responseText.split("<||>");
+    if(gameObj.DEBUG)
+      alert("Got " + responseText);
+    $('newsbox').innerHTML = response[0] == "" ? "No news" : response[0];
+    $('queue').innerHTML = response[1] == "" ? "No one at your counter" : (response[1]);
+    teams = response[2].split("\n");
+    $("acceptButton").disabled = true;
+    for(var i = 0; i < teams.length; i++) {
+      values = teams[i].split("|");
+  
+      if(i == gameObj.queued) {
+        values[gameObj.action] = "<b>" + values[gameObj.action] + "</b>";
+      }
+      
+      $("team" + values[0] + "_bid").innerHTML = values[1];
+      $("team" + values[0] + "_ask").innerHTML = values[2];
+      $("team" + values[0] + "_queue").innerHTML = values[3];
+      $("acceptButton").disabled = false;
+    }
+    newValues = response[3].split("|");
+    $("cash").innerHTML = newValues[0];
+    $("shares").innerHTML = newValues[1];
+  }
+}
+
+function buy(team_id) {
+  gameObj.queued = team_id;
+  gameObj.action = 2;
+  alert("Buying from team " + team_id);
+  send_xmlhttp('queue', 'team_id=' + team_id + '&market_action=buy');
+}
+
+function sell(team_id) {
+  gameObj.queued = team_id;
+  gameObj.action = 1;
+  alert("Selling to team " + team_id);
+  send_xmlhttp('queue', 'team_id=' + team_id + '&market_action=sell')
+}
+
+function acceptOrder() {
+  alert("Accepting first order...");
+  send_xmlhttp('accept', '');
+}
+
+var gameObj = {
+  url: "/ajax/",
+  queued: -1,
+  action: -1,
+  ajaxObj: ajax_handler(),
+  watcherObj: ajax_handler(),
+  DEBUG: 0,
+}
+
+game_init();
+</script>
+{% endblock %}
+{% block content %}
+  {% if teams %}
+    {{teams|length}} team{{teams|pluralize}} in the database
+    <table style="width:100%">
+      <tr><th>Team name</th><th>Bid</th><th>Ask</th></tr>
+    {% for team in teams %}
+      <tr>
+        <td>{{team.name}} (#{{team.id}}) -- Queue size: <span id="team{{team.id}}_queue">0</span></td>
+        <td><a id="team{{team.id}}_bid" href="javascript:void(sell({{team.id}}))">{{team.bid}}</a></td>
+        <td><a id="team{{team.id}}_ask" href="javascript:void(buy({{team.id}}))">{{team.ask}}</a></td>
+      </tr>
+    {% endfor %}
+    </table>
+    <h2>Your table</h2>
+    <form onsubmit="send_xmlhttp('update_prices', 'bid=' + this.bid.value + '&ask=' + this.ask.value); return false;">
+    Bid: <input type="text" name="bid" value="{{user.team.bid}}" /><br />
+    Ask: <input type="text" name="ask" value="{{user.team.ask}}" /><br />
+    Cash balance: $<span id="cash">{{user.team.cash}}</span><br />
+    Number of shares: <span id="shares">{{user.team.shares}}</span><br />
+    <input type="submit" value="Update" />
+    </form>
+    <div id="queue">No one at your counter
+    </div>
+    <input id="acceptButton" type='button' disabled='disabled' value='Accept first in queue' onclick='acceptOrder();return false;' />
+    <h2>News</h2>
+    <div id="newsbox">
+    No news yet
+    </div>
+  {% else %}
+    There are no teams.
+  {% endif %}
+{% endblock %}
